@@ -3,7 +3,7 @@ import zeep
 import azure.functions as func
 import os
 import json
-from typing import Dict, Union
+from typing import Dict, Union, List
 
 def hours_decimal_from_time_str(time_str: str) -> float:
     """turns a HH:MM time string into a decimal, where the units are the hours since midnight and the decimal is the fraction through the hour
@@ -58,6 +58,10 @@ def get_details_from_service(train_service, ldbws):
         details.sta = train_service.sta
     return details
 
+def filter_for_soon_train_locs(cutoff_departure: float, train_locs: List) -> List:
+    return [train_loc for train_loc in train_locs
+            if train_loc[0]["time"] <= cutoff_departure]
+
 def main(req: func.HttpRequest) -> func.HttpResponse:
     left_crs = req.params.get('left_crs')
     right_crs = req.params.get('right_crs')
@@ -81,19 +85,31 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     ldbws = zeep.Client("https://lite.realtime.nationalrail.co.uk/OpenLDBWS/wsdl.aspx?ver=2021-11-01", settings=loose_settings)
     ldbws.set_default_soapheaders({"AccessToken": os.environ["ldbwsAuth"]})
 
-    left_to_right = ldbws.service.GetArrivalBoard(crs=right_crs, filterType="from", filterCrs=left_crs, numRows=10)
+    left_to_right = ldbws.service.GetArrivalBoard(crs=right_crs, 
+                                                  filterType="from", 
+                                                  filterCrs=left_crs, 
+                                                  numRows=10)
+    decimal_now = hours_decimal_from_time_str(f"{left_to_right.generatedAt.hour:02d}:{left_to_right.generatedAt.minute:02d}")
+    cutoff_departure = decimal_now + 0.5
     
     lr_train_details = [get_details_from_service(service, ldbws)
                         for service in left_to_right.trainServices.service]
     
-    lr_train_locs = [get_locations_from_train_details(train_details, left_crs)
-                     for train_details in lr_train_details]
+    lr_train_locs = filter_for_soon_train_locs(
+        cutoff_departure, 
+        [get_locations_from_train_details(train_details, left_crs)
+         for train_details in lr_train_details])
     
-    right_to_left = ldbws.service.GetArrivalBoard(crs=left_crs, filterType="from", filterCrs=right_crs, numRows=10)
+    right_to_left = ldbws.service.GetArrivalBoard(crs=left_crs, 
+                                                  filterType="from", 
+                                                  filterCrs=right_crs, 
+                                                  numRows=10)
     rl_train_details = [get_details_from_service(service, ldbws)
                         for service in right_to_left.trainServices.service]
-    rl_train_locs = [get_locations_from_train_details(train_details, right_crs)
-                     for train_details in rl_train_details]
+    rl_train_locs = filter_for_soon_train_locs(
+        cutoff_departure, 
+        [get_locations_from_train_details(train_details, right_crs) 
+         for train_details in rl_train_details])
 
     return func.HttpResponse(json.dumps({
         "lr": lr_train_locs,
