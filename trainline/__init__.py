@@ -79,6 +79,9 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     if left_crs is None or right_crs is None:
         return func.HttpResponse("expected valid parameters", status_code=400)
     
+    left_crs = left_crs.upper()
+    right_crs = right_crs.upper()
+    
     logging.info(f'looking for trains between {left_crs} and {right_crs}')
     
     loose_settings = zeep.Settings(strict=False)
@@ -113,6 +116,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
 
     return func.HttpResponse(json.dumps({
         "lr": lr_train_locs,
-        "rl": rl_train_locs
+        "rl": rl_train_locs,
+        "now": decimal_now
     }))
 
