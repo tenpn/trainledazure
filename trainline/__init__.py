@@ -93,7 +93,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                                                   filterCrs=left_crs, 
                                                   numRows=10)
     decimal_now = hours_decimal_from_time_str(f"{left_to_right.generatedAt.hour:02d}:{left_to_right.generatedAt.minute:02d}")
-    cutoff_departure = decimal_now + 0.5
+    cutoff_departure = decimal_now + 1
     
     lr_train_details = [get_details_from_service(service, ldbws)
                         for service in left_to_right.trainServices.service]
