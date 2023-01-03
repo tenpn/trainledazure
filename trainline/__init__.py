@@ -96,7 +96,9 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     cutoff_departure = decimal_now + 1
     
     lr_train_details = [get_details_from_service(service, ldbws)
-                        for service in left_to_right.trainServices.service]
+                        for service in left_to_right.trainServices.service] \
+                if left_to_right.areServicesAvailable is not None and left_to_right.areServicesAvailable \
+                else []
     
     lr_train_locs = filter_for_soon_train_locs(
         cutoff_departure, 
@@ -108,15 +110,19 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                                                   filterCrs=right_crs, 
                                                   numRows=10)
     rl_train_details = [get_details_from_service(service, ldbws)
-                        for service in right_to_left.trainServices.service]
+                        for service in right_to_left.trainServices.service] \
+                if right_to_left.areServicesAvailable is not None and right_to_left.areServicesAvailable \
+                else []
     rl_train_locs = filter_for_soon_train_locs(
         cutoff_departure, 
         [get_locations_from_train_details(train_details, right_crs) 
          for train_details in rl_train_details])
-
-    return func.HttpResponse(json.dumps({
+    
+    timetables = {
         "lr": lr_train_locs,
         "rl": rl_train_locs,
         "now": decimal_now
-    }))
+    }    
+    logging.info(str(timetables))
+    return func.HttpResponse(json.dumps(timetables))
 
