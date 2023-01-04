@@ -3,7 +3,7 @@ import zeep
 import azure.functions as func
 import os
 import json
-from typing import Dict, Union, List
+from typing import Dict, Union, List, Optional
 
 def hours_decimal_from_time_str(time_str: str) -> float:
     """turns a HH:MM time string into a decimal, where the units are the hours since midnight and the decimal is the fraction through the hour
@@ -62,6 +62,28 @@ def filter_for_soon_train_locs(cutoff_departure: float, train_locs: List) -> Lis
     return [train_loc for train_loc in train_locs
             if train_loc[0]["time"] <= cutoff_departure]
 
+def get_details_from_board(board, ldbws) -> List:
+    """fetches trains out of a board and puts them through get_details_from_service
+
+    Args:
+        board (_type_): a board soap object
+        ldbws: 
+
+    Returns:
+        List: empty list if no trains
+    """
+    services = board.trainServices
+    if services is None:
+        return []
+    
+    service_list = services.service
+    if service_list is None:
+        return []
+    
+    return [get_details_from_service(service, ldbws) 
+            for service in service_list] \
+    
+
 def main(req: func.HttpRequest) -> func.HttpResponse:
     left_crs = req.params.get('left_crs')
     right_crs = req.params.get('right_crs')
@@ -94,11 +116,8 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                                                   numRows=10)
     decimal_now = hours_decimal_from_time_str(f"{left_to_right.generatedAt.hour:02d}:{left_to_right.generatedAt.minute:02d}")
     cutoff_departure = decimal_now + 1
-    
-    lr_train_details = [get_details_from_service(service, ldbws)
-                        for service in left_to_right.trainServices.service] \
-                if left_to_right.areServicesAvailable is not None and left_to_right.areServicesAvailable \
-                else []
+        
+    lr_train_details = get_details_from_board(left_to_right, ldbws)
     
     lr_train_locs = filter_for_soon_train_locs(
         cutoff_departure, 
@@ -109,10 +128,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                                                   filterType="from", 
                                                   filterCrs=right_crs, 
                                                   numRows=10)
-    rl_train_details = [get_details_from_service(service, ldbws)
-                        for service in right_to_left.trainServices.service] \
-                if right_to_left.areServicesAvailable is not None and right_to_left.areServicesAvailable \
-                else []
+    rl_train_details = get_details_from_board(right_to_left, ldbws)
     rl_train_locs = filter_for_soon_train_locs(
         cutoff_departure, 
         [get_locations_from_train_details(train_details, right_crs) 
