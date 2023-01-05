@@ -3,7 +3,7 @@ import zeep
 import azure.functions as func
 import os
 import json
-from typing import Dict, Union, List, Optional
+from typing import Dict, Union, List
 
 def hours_decimal_from_time_str(time_str: str) -> float:
     """turns a HH:MM time string into a decimal, where the units are the hours since midnight and the decimal is the fraction through the hour
