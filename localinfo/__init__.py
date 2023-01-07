@@ -79,6 +79,9 @@ def put_trains_into(station: str, response: Dict) -> Dict:
     ldbws.set_default_soapheaders({"AccessToken": os.environ["ldbwsAuth"]})
     departures = ldbws.service.GetDepartureBoard(crs=station, numRows=10)
     
+    # in case we quit early, make sure there's something
+    response["departures_times"] = []
+    
     services = departures.trainServices
     if services is None:
         return response
