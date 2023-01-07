@@ -6,7 +6,19 @@ import os
 import requests
 from typing import Dict, Union, List, Optional
 
-def decimal_time_from_time_str(time_str: str) -> float:
+def decimal_time_from_24h_str(time_str: str) -> float:
+    """turns a HH:MM time string into a decimal, where the units are the hours since midnight and the decimal is the fraction through the hour
+
+    Args:
+        time_str (str): "hh:mm"
+
+    Returns:
+        float: hours.fraction_through_hour
+    """
+    # not sure if this is 24h clock or not yet?
+    return int(time_str[0:2]) + (int(time_str[3:])/60.0)
+
+def decimal_time_from_12h_str(time_str: str) -> float:
   """easier to do maths with decimal time!
 
   Args:
@@ -51,8 +63,8 @@ def put_weather_into(postcode : str, response: Dict) -> Dict:
     response["humidity_now"] = weather_raw_json["current"]["humidity"]
     response["rain_%_today"] = weather_day_json["day"]["daily_chance_of_rain"]
     response["condition"] = weather_raw_json["current"]["condition"]["text"]
-    response["sunrise"] = decimal_time_from_time_str(weather_day_json["astro"]["sunrise"])
-    response["sunset"] = decimal_time_from_time_str(weather_day_json["astro"]["sunset"])
+    response["sunrise"] = decimal_time_from_12h_str(weather_day_json["astro"]["sunrise"])
+    response["sunset"] = decimal_time_from_12h_str(weather_day_json["astro"]["sunset"])
     
     response["rain_%_hours"] = [forecast_hour["chance_of_rain"] 
                                 for forecast_hour in weather_day_json["hour"]]
@@ -61,28 +73,11 @@ def put_weather_into(postcode : str, response: Dict) -> Dict:
     
     return response
 
-def get_details_from_service(train_service, ldbws):
-    """makes sure the service is valid
-
-    Args:
-        train_service (ServiceItem): 
-        ldbws: it's ldbws!!!
-
-    Returns:
-        ServiceDetails: makes sure sta is vaid and populated
-    """
-    details = ldbws.service.GetServiceDetails(train_service.serviceID)
-    if details.std is None:
-        details.std = train_service.std
-    return details
-
 def put_trains_into(station: str, response: Dict) -> Dict:
     loose_settings = zeep.Settings(strict=False)
     ldbws = zeep.Client("https://lite.realtime.nationalrail.co.uk/OpenLDBWS/wsdl.aspx?ver=2021-11-01", settings=loose_settings)
     ldbws.set_default_soapheaders({"AccessToken": os.environ["ldbwsAuth"]})
     departures = ldbws.service.GetDepartureBoard(crs=station, numRows=10)
-    
-    response["departures_times"] = [21.40, 21.55, 22.10]
     
     services = departures.trainServices
     if services is None:
@@ -92,9 +87,9 @@ def put_trains_into(station: str, response: Dict) -> Dict:
     if service_list is None:
         return response
 
-    response["departures_times"] = [21.40, 21.55, 22.10]
+    departure_times = [decimal_time_from_24h_str(service["std"]) for service in service_list]
+    response["departures_times"] = departure_times
     return response
-
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
     train_crs = req.params.get('train')
