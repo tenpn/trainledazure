@@ -1,4 +1,5 @@
 {
-    "train": "knn",
+    "trainFrom": "knn",
+    "trainTo": "bhx",
     "weather": "b30"
 }
