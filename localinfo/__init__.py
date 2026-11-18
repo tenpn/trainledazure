@@ -50,10 +50,14 @@ def put_weather_into(postcode: str, response: Dict) -> Dict:
 
     forecast_url = f'https://api.weatherapi.com/v1/forecast.json?q={postcode}&key={os.environ["weatherAuth"]}'
 
-    weather_req = requests.get(forecast_url)
-    logging.info(f"{forecast_url} gave {weather_req}")
+    try:
+        weather_req = requests.get(forecast_url, timeout=10)
+    except requests.RequestException as e:
+        logging.warning(f"weather request failed: {e}")
+        return response
+    logging.info(f"weather request gave {weather_req}")
     if weather_req.status_code != 200:
-        return
+        return response
 
     weather_raw_json = weather_req.json()
     weather_day_json = weather_raw_json["forecast"]["forecastday"][0]
