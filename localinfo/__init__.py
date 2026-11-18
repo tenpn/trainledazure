@@ -47,7 +47,12 @@ def put_weather_into(postcode: str, response: Dict) -> Dict:
     # - chance of rain
     # - feelslike c
 
-    forecast_url = f'https://api.weatherapi.com/v1/forecast.json?q={postcode}&key={os.environ["weatherAuth"]}'
+    weather_key = os.environ.get("weatherAuth")
+    if not weather_key:
+        logging.warning("weatherAuth not set, skipping weather")
+        return response
+
+    forecast_url = f"https://api.weatherapi.com/v1/forecast.json?q={postcode}&key={weather_key}"
 
     try:
         weather_req = requests.get(forecast_url, timeout=10)
