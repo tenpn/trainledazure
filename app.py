@@ -11,11 +11,30 @@ import hmac
 import os
 
 from flask import Flask, abort, jsonify, request
+from zeep.exceptions import Fault
 
 from localinfo import get_localinfo
 from trainline import get_trainline
 
 app = Flask(__name__)
+
+STATION_PARAMS = ("trainFrom", "trainTo", "left_crs", "right_crs")
+
+
+@app.errorhandler(Fault)
+def national_rail_fault(fault: Fault):
+    # LDBWS reports bad station codes as a SOAP fault ("Invalid crs code supplied").
+    # anything else it complains about is its problem, not the caller's.
+    if "crs" in fault.message.lower():
+        body = request.get_json(silent=True) or {}
+        stations = {
+            name: request.args.get(name) or body.get(name)
+            for name in STATION_PARAMS
+            if request.args.get(name) or body.get(name)
+        }
+        return jsonify(error=fault.message, stations=stations), 400
+    app.logger.error(f"National Rail fault: {fault.message}")
+    return jsonify(error=f"National Rail error: {fault.message}"), 502
 
 
 @app.before_request
