@@ -1,6 +1,5 @@
 import logging
 import zeep
-import azure.functions as func
 import os
 import json
 from typing import Dict, Union, List
@@ -84,23 +83,7 @@ def get_details_from_board(board, ldbws) -> List:
             for service in service_list] \
     
 
-def main(req: func.HttpRequest) -> func.HttpResponse:
-    left_crs = req.params.get('left_crs')
-    right_crs = req.params.get('right_crs')
-    
-    if left_crs is None:
-        # assume they both are
-        try:
-            req_body = req.get_json()
-        except ValueError:
-            pass
-        else:
-            left_crs = req_body.get("left_crs")
-            right_crs = req_body.get("right_crs")
-            
-    if left_crs is None or right_crs is None:
-        return func.HttpResponse("expected valid parameters", status_code=400)
-    
+def get_trainline(left_crs: str, right_crs: str) -> Dict:
     left_crs = left_crs.upper()
     right_crs = right_crs.upper()
     
@@ -140,5 +123,5 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         "now": decimal_now
     }    
     logging.info(str(timetables))
-    return func.HttpResponse(json.dumps(timetables))
+    return timetables
 

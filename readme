@@ -1,3 +1,18 @@
-an azure function application for train and weather info 
+Train and weather info for the display at github.com/tenpn/unicorn.
 
-used to display on github.com/tenpn/unicorn 
+A small Flask app (app.py) hosted on Vercel. Pushing to master deploys it.
+
+Endpoints (all need ?code=<API_KEY>):
+  /api/localinfo?trainFrom=KNN&trainTo=BHX&weather=B30
+      departure times from trainFrom to trainTo, plus today's weather for a postcode
+  /api/trainline?left_crs=BHM&right_crs=KNN
+      trains running in both directions between two stations, with the time they reach each stop
+
+Environment variables (set in the Vercel project settings):
+  API_KEY      shared secret that clients pass as ?code=
+  ldbwsAuth    National Rail LDBWS access token
+  weatherAuth  weatherapi.com key
+
+Run locally:
+  pip install -r requirements.txt
+  API_KEY=test ldbwsAuth=... weatherAuth=... flask --app app run

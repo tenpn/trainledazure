@@ -1,5 +1,4 @@
 import logging
-import azure.functions as func
 import zeep
 import json
 import os
@@ -117,27 +116,8 @@ def put_trains_into(from_station: str, to_station: str, response: Dict) -> Dict:
     return response
 
 
-def main(req: func.HttpRequest) -> func.HttpResponse:
-    train_to = req.params.get("trainTo")
-    train_from = req.params.get("trainFrom")
-    weather_postcode = req.params.get("weather")
-
-    if train_to is None:
-        # assume they both are
-        try:
-            req_body = req.get_json()
-        except ValueError:
-            pass
-        else:
-            train_to = req_body.get("trainTo")
-            train_from = req_body.get("trainFrom")
-            weather_postcode = req_body.get("weather")
-
-    if weather_postcode is None or train_to is None:
-        return func.HttpResponse("expected valid parameters", status_code=400)
-
+def get_localinfo(train_from: str, train_to: str, weather_postcode: str) -> Dict:
     response = put_weather_into(weather_postcode, {})
     response = put_trains_into(train_from, train_to, response)
-
     logging.info(str(response))
-    return func.HttpResponse(json.dumps(response))
+    return response
