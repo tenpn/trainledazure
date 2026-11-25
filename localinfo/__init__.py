@@ -45,7 +45,7 @@ def put_weather_into(postcode: str, response: Dict) -> Dict:
     # sunset
     # per hour:
     # - chance of rain
-    # - feelslike c
+    # - temp c
 
     weather_key = os.environ.get("weatherAuth")
     if not weather_key:
@@ -82,8 +82,8 @@ def put_weather_into(postcode: str, response: Dict) -> Dict:
     response["rain_%_hours"] = [
         forecast_hour["chance_of_rain"] for forecast_hour in weather_day_json["hour"]
     ]
-    response["temp_feelslike_hours"] = [
-        forecast_hour["feelslike_c"] for forecast_hour in weather_day_json["hour"]
+    response["temp_hours"] = [
+        forecast_hour["temp_c"] for forecast_hour in weather_day_json["hour"]
     ]
 
     return response
